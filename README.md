@@ -1,6 +1,7 @@
-# KaamSetu 🚀
+# KaamSetu (कामसेतु) 🚀
+**Autonomous AI Secretary and Workflow Orchestrator**
 
-> **Turn Hindi-English (Hinglish) voice notes into assigned, cited action items — and automatically pause whenever conflicting evidence means a human must decide.**
+> **Turn Hindi-English (Hinglish) voice notes into structured, verified, multi-agent execution chains — and automatically pause whenever conflicting evidence means a human must decide.**
 
 ## 🔗 Live Demo & Links
 - **Frontend (Vercel):** [https://kaam-setu-ecru.vercel.app](https://kaam-setu-ecru.vercel.app)
@@ -10,110 +11,123 @@
 ---
 
 ## 🎯 The Problem
-Small Indian businesses and WhatsApp-heavy teams communicate through voice notes. Important tasks become buried in informal speech, unclear ownership, deadlines, and contradictory instructions.
 
-**Example:**
-> “Rahul, kal tak vendor quotation compare kar dena. Finance policy ke according advance 20% se zyada nahi hona chahiye, but latest vendor document says 30%.”
+In Indian MSMEs and distributed teams, **over 80% of critical business coordination happens via unstructured voice notes and chat messages** (WhatsApp, Telegram, voice calls) in Hinglish (Hindi + English). This reliance on informal communication creates two major problems:
 
-A normal task app cannot understand this reliably or resolve the conflict. **Target User:** A small-business owner or operations manager coordinating a team through Hindi-English, WhatsApp-style voice notes.
+### 1. Unstructured Chaos & Policy Violations
+- **Lost Accountability**: Instructions like *"Ravi se bolo employee details bheje aur phir Mohan ko bolo portal update kare"* get buried in active WhatsApp groups. Deadlines are missed, and nobody knows who is waiting on whom.
+- **Hallucination in Naive AI**: Standard LLMs fail to enforce business rules. They might silently approve a vendor's 30% advance request even if company policy caps it at 20%.
 
----
-
-## 🏗️ What I Built & How It Works
-
-**KaamSetu** is an AI-powered operations tool designed specifically to solve this problem. 
-
-**Core Workflow:**
-1. **Ingest:** A user records or uploads a Hinglish voice note (or types a text command).
-2. **Transcription:** Groq's `whisper-large-v3` transcribes the code-mixed speech.
-3. **Extraction:** A reasoning model (`openai/gpt-oss-120b`) extracts the task, assignee, deadline, and entities into a strict JSON schema.
-4. **Verification:** A secondary model retrieves private documents and checks the extracted task against prior context to detect contradictions.
-5. **Confidence Routing:** 
-   - **High Confidence:** Task is automatically assigned.
-   - **Conflicts/Low Confidence:** The task is paused and pushed to a Human Review Queue with citations of the conflicting evidence.
-
-### Why AI is Essential
-Removing AI breaks the product completely:
-- Speech cannot be transcribed.
-- Code-mixed meaning (Hinglish) cannot be understood.
-- Tasks cannot be extracted from natural conversation.
-- Contradictions cannot be detected semantically.
+### 2. The "Secretary / Manager" Bottleneck
+- **Manual Dependency Management**: Multi-step operations require Step A's output before Step B can start. Currently, a manager wastes hours manually nudging employees, collecting data from one person, and forwarding it to the next.
+- **Execution Overhead**: The orchestrator of the work (the owner/manager) becomes the bottleneck, spending more time tracking tasks than doing meaningful work.
 
 ---
 
-## ✨ Key Features
+## 🏗️ What We Are Solving
 
-- **Code-Mixed Transcription:** Flawlessly handles Hindi-English (Hinglish) speech.
-- **Contradiction Detection:** Refuses to silently "average out" conflicting instructions. It pauses, surfaces the evidence, and hands the decision back to a human.
-- **Premium Glassmorphism UI:** Built with Vite and React, featuring smooth micro-animations, skeleton loaders, and a polished dark/light aesthetic.
-- **Graceful Degradation:** Runs in a degraded offline/review mode when the AI or database is unavailable.
-- **Role-Based Auth:** Secure JWT access tokens and hashed refresh tokens.
+**KaamSetu** acts as an **Autonomous AI Secretary and Workflow Orchestrator**. It converts chaotic voice notes and code-mixed instructions into structured, verified, multi-agent execution chains. **Crucially, the AI doesn't do the work—it orchestrates the humans doing the work.**
+
+### Core Value Propositions:
+- 🎙️ **Voice-to-Workflow Engine**: Owners simply speak code-mixed instructions. KaamSetu transcribes and autonomously decomposes them into discrete, actionable steps assigned to the right team members.
+- 🔗 **Autonomous Dependency Orchestration**: Replaces manual follow-ups. If Task B depends on Task A, Task B is automatically placed in a `BLOCKED` state until the first assignee completes their task.
+- 🔄 **Contextual Data Handoff**: When an employee completes a step, they input their response data directly into the system. KaamSetu injects that exact data into the next assignee's task context automatically, completely bypassing the manager.
+- 🛡️ **Grounded Verification**: Before dispatching tasks, KaamSetu checks instructions against uploaded company policies (e.g., finance limits). If a conflict is detected, the AI deliberately pauses and requests human confirmation.
+- 👥 **Role-Based Visibility**: Owners track company-wide delegation and live chain progress; team members see only their assigned actions in a clean inbox.
 
 ---
 
-## 🧠 Architecture
+## 🧠 Technical Architecture
 
 ```text
-React dashboard (Vercel)
-      ↓
-Express API (Render)
-      ↓
-Whisper transcription (Groq)
-      ↓
-Task extraction model
-      ↓
-PostgreSQL retrieval (Neon)
-      ↓
-Conflict and citation verifier
-      ↓
-Confidence router
-   ├── Assign task
-   ├── Request clarification
-   └── Human review
+       [ Voice Note / Audio / Text ]
+                     │
+                     ▼
+       ┌─────────────────────────────┐
+       │     Whisper Audio Engine    │  (Whisper-large-v3 on Groq)
+       └─────────────┬───────────────┘
+                     │ Raw Code-Mixed Transcript
+                     ▼
+       ┌─────────────────────────────┐
+       │    LLM Extraction Engine    │  (Structured JSON Task Graph)
+       │  - Task Titles & Assignees  │
+       │  - Dependency Linking       │
+       └─────────────┬───────────────┘
+                     │
+       ┌─────────────┴───────────────┐
+       ▼                             ▼
+┌──────────────┐             ┌──────────────┐
+│  RAG Engine  │             │ Verification │ (Checks against SOPs / Policies)
+└──────┬───────┘             └──────┬───────┘
+       │                            │
+       └─────────────┬──────────────┘
+                     ▼
+       ┌─────────────────────────────┐
+       │   Agentic State Machine     │
+       │   - Open / Ready to Assign  │
+       │   - Assigned                │
+       │   - Blocked (Waiting Step)  │
+       │   - Done (Pass Context)     │
+       └─────────────┬───────────────┘
+                     │
+       ┌─────────────┴───────────────┐
+       ▼                             ▼
+┌──────────────┐             ┌──────────────┐
+│   Backend    │             │   Frontend   │
+│ Express API  │             │ React + Vite │
+│ Neon Postgres│             │ Live Stream  │
+└──────────────┘             └──────────────┘
 ```
 
 ---
 
-## 🛠️ Technical Decisions
+## 🚀 End-to-End Workflow Example
 
-1. **Separated Architecture (Vercel + Render):** Instead of a monolith, the frontend is deployed on Vercel for edge-caching and lightning-fast UI delivery, while the Express/Node.js backend runs on Render to handle heavy API routing and database connections.
-2. **PostgreSQL over SQLite:** Initially, the project relied on SQLite. However, due to `GLIBC` binary compilation issues on Render's modern Node 20+ images, I made the architectural decision to completely rip out SQLite and migrate exclusively to **Neon Serverless PostgreSQL**. This made the backend instantly lighter, faster to deploy, and production-ready.
-3. **Dropping Redis:** To keep the infrastructure lean and reduce cost overhead for the hackathon, I removed Redis and `bullmq`. The pipeline currently handles ingest verification synchronously, which is sufficient for the demo scale.
-4. **Dynamic API Routing:** The frontend uses Vite environment variables (`VITE_API_URL`) to seamlessly switch between the local proxy during development and the Render API in production.
+### Scenario:
+**Voice Note Input by Owner (Anika Kapoor):**
+> *"Ravi Mehta se bolo ki vah Apne Sare employee detail De aur FIR Mohan se bolo vah Sare data portal per update Karke"*
+
+### System Execution Steps:
+1. **AI Processing**: 
+   - **Task 1**: *"Provide employee details"* → Assigned to **Ravi Mehta** (Status: `ASSIGNED`).
+   - **Task 2**: *"Update all data on the portal"* → Assigned to **Mohan Verma** (Status: `BLOCKED`, Depends on Task 1).
+2. **Owner View (Anika)**:
+   - Sees the workflow under **"Workflows you initiated"**.
+   - Clicks **"📊 Status"** to view the live execution timeline showing Step 1 in progress and Step 2 blocked.
+3. **Assignee 1 (Ravi Mehta)**:
+   - Logs in via user switcher.
+   - Sees *"Provide employee details"* in **"Assigned to you"**.
+   - Clicks **"Complete Task"**, types input: `"Total 42 employees list submitted"`, and clicks **"Submit & Done"**.
+4. **Autonomous Cascading**:
+   - Backend marks Task 1 as `DONE`.
+   - Automatically promotes Task 2 from `BLOCKED` to `ASSIGNED`.
+   - Attaches `[Data from previous step: Total 42 employees list submitted]` to Task 2.
+5. **Assignee 2 (Mohan Verma)**:
+   - Logs in.
+   - Sees the unblocked task with the green tag **"HAS PRIOR DATA"** and Ravi's exact numbers.
+   - Completes the task and provides confirmation.
 
 ---
 
-## 🚧 Challenges Faced
+## 🛠️ Technology Stack & Decisions
 
-- **Deployment Native Binary Issues:** When deploying the Node.js backend to Render, the `sqlite3` package threw fatal `GLIBC_2.38` missing errors because Render's base OS didn't match the precompiled SQLite binaries for Node 24. **Solution:** Enforced Node 20.x via `package.json` engines, and ultimately ripped out SQLite entirely in favor of a pure Neon Postgres architecture.
-- **CORS & Origin Security:** Getting a separated Vercel frontend to securely talk to a Render backend required careful configuration of Express `cors` middleware, specifically passing the `CLIENT_ORIGIN` environment variable and ensuring no trailing slashes broke the handshake.
-- **State Management & UI Robustness:** Ensuring the UI gracefully handled missing data (e.g., submitting tasks without text) without crashing. **Solution:** Implemented robust CSS skeleton loaders, empty states, and dynamic error toasts.
-
----
-
-## 🎙️ Pitch Questions
-
-**1. What did you build versus what did the API give you?**
-The APIs provide raw transcription and language generation. We built the code-mixed task structure, Postgres retrieval, conflict detection, citations, confidence routing, human review queue, and a premium UI to tie it all together.
-
-**2. What was the non-obvious hard part?**
-Determining whether a new spoken instruction conflicts with an earlier message or private policy, instead of blindly creating a task.
-
-**3. What breaks at 10,000 users?**
-Bottlenecks would emerge in transcription cost, model latency, and concurrent database connections. Moving back to a robust queuing system (like Redis/BullMQ, which we scaffolded but removed for demo simplicity) and connection pooling via PgBouncer would be required to scale.
+| Layer | Technology | Purpose |
+| :--- | :--- | :--- |
+| **Frontend (Vercel)** | React 18, Vite, Vanilla CSS, Lucide Icons | Responsive UI with real-time feedback, status timelines, and isolated session switching. |
+| **Backend API (Render)** | Node.js, Express, TypeScript | RESTful API, asynchronous pipelines, authentication middleware. |
+| **Database** | **Neon Serverless PostgreSQL** | *(Note: Moved away from local SQLite to a pure-Postgres architecture to avoid Render GLIBC binary compilation errors and scale effectively).* |
+| **AI / LLM** | Groq API (`whisper-large-v3`, `gpt-oss-120b`) | Ultra-fast code-mixed transcription and structured JSON task graph generation. |
+| **Security & Auth** | JWT Access & Refresh Tokens, bcrypt | Per-user authenticated sessions with role-based access control. |
 
 ---
 
 ## 👥 Team & Contributions
-
-*(If you worked solo, leave the first bullet. If you had a team, fill in their roles!)*
 
 - **Arun** (Solo Developer / Lead): 
   - Designed and developed the premium React/Vite frontend UI (CSS animations, layout, state management).
   - Built the Node.js/Express backend pipeline.
   - Integrated Groq AI models for transcription and reasoning.
   - Managed devops: Migrated database to Neon Postgres, configured environment variables, and successfully deployed to Vercel and Render.
-- **[Team Member 2 Name]**: *(Role - e.g., Handled presentation, testing, or specific feature)*
 
 ---
 
