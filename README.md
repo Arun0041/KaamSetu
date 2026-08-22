@@ -1,227 +1,188 @@
-# KaamSetu
+# KaamSetu 🚀
 
-> Turn Hindi-English voice notes into assigned, cited action items — and pause whenever conflicting evidence means a human must decide.
+> **Turn Hindi-English (Hinglish) voice notes into assigned, cited action items — and automatically pause whenever conflicting evidence means a human must decide.**
 
-KaamSetu is an AI-powered operations tool for small Indian businesses and WhatsApp-heavy teams. It transcribes code-mixed (Hinglish) voice notes, extracts structured tasks with assignees and deadlines, retrieves relevant private documents, detects contradictions between sources, cites the evidence, and routes anything uncertain to a human review queue instead of silently guessing.
+## 🔗 Live Demo & Links
+- **Frontend (Vercel):** [https://kaam-setu-ecru.vercel.app](https://kaam-setu-ecru.vercel.app)
+- **Backend API (Render):** [https://kaamsetu-qta5.onrender.com](https://kaamsetu-qta5.onrender.com)
+- **Database:** Neon (PostgreSQL)
 
-## ✨ Features
+---
 
-- **Code-mixed transcription** — Whisper handles Hindi-English (Hinglish) speech.
-- **Task extraction** — a reasoning model extracts title, assignee, deadline, priority, and entities.
-- **Hybrid retrieval** — keyword/Postgres search over private sources (pgvector-ready).
-- **Contradiction detection** — a second model compares the new instruction against private policies and prior notes.
-- **Evidence citation** — conflicting quotes are surfaced with source + page references.
-- **Confidence routing** — high-confidence items become assignable; low-confidence/conflicting items go to review.
-- **Graceful degradation** — runs in offline/review mode when the AI or database is unavailable.
-- **Typed text input** — describe the instruction directly instead of uploading a voice note.
-- **Auth** — JWT access tokens + hashed, rotating refresh tokens with role-based access.
+## 🎯 The Problem
+Small Indian businesses and WhatsApp-heavy teams communicate through voice notes. Important tasks become buried in informal speech, unclear ownership, deadlines, and contradictory instructions.
 
-## 🧠 What problem it solves
-
-Small-business owners lose operational commitments inside informal Hinglish voice notes. A normal task app cannot reliably understand:
-
+**Example:**
 > “Rahul, kal tak vendor quotation compare kar dena. Finance policy ke according advance 20% se zyada nahi hona chahiye, but latest vendor document says 30%.”
 
-KaamSetu understands the intent, extracts the action, and — crucially — **refuses to silently average the 20% policy vs. the 30% vendor request**. It pauses, shows the evidence, and hands the decision back to a human.
+A normal task app cannot understand this reliably or resolve the conflict. **Target User:** A small-business owner or operations manager coordinating a team through Hindi-English, WhatsApp-style voice notes.
 
-## 🛠 Tech Stack
+---
 
-| Layer | Technology |
-|---|---|
-| Frontend | React 18, Vite, Lucide icons |
-| Backend | Node.js, Express, TypeScript |
-| AI | Groq API — `whisper-large-v3` (speech) + `openai/gpt-oss-120b` (reasoning) |
-| Database | PostgreSQL (+ pgvector optional) |
-| Queues | Redis / BullMQ-ready (add for production) |
-| Auth | JWT (`jsonwebtoken`) + bcrypt |
-| Validation | Zod |
+## 🏗️ What I Built & How It Works
 
-## 🏗 Architecture
+**KaamSetu** is an AI-powered operations tool designed specifically to solve this problem. 
+
+**Core Workflow:**
+1. **Ingest:** A user records or uploads a Hinglish voice note (or types a text command).
+2. **Transcription:** Groq's `whisper-large-v3` transcribes the code-mixed speech.
+3. **Extraction:** A reasoning model (`openai/gpt-oss-120b`) extracts the task, assignee, deadline, and entities into a strict JSON schema.
+4. **Verification:** A secondary model retrieves private documents and checks the extracted task against prior context to detect contradictions.
+5. **Confidence Routing:** 
+   - **High Confidence:** Task is automatically assigned.
+   - **Conflicts/Low Confidence:** The task is paused and pushed to a Human Review Queue with citations of the conflicting evidence.
+
+### Why AI is Essential
+Removing AI breaks the product completely:
+- Speech cannot be transcribed.
+- Code-mixed meaning (Hinglish) cannot be understood.
+- Tasks cannot be extracted from natural conversation.
+- Contradictions cannot be detected semantically.
+
+---
+
+## ✨ Key Features
+
+- **Code-Mixed Transcription:** Flawlessly handles Hindi-English (Hinglish) speech.
+- **Contradiction Detection:** Refuses to silently "average out" conflicting instructions. It pauses, surfaces the evidence, and hands the decision back to a human.
+- **Premium Glassmorphism UI:** Built with Vite and React, featuring smooth micro-animations, skeleton loaders, and a polished dark/light aesthetic.
+- **Graceful Degradation:** Runs in a degraded offline/review mode when the AI or database is unavailable.
+- **Role-Based Auth:** Secure JWT access tokens and hashed refresh tokens.
+
+---
+
+## 🧠 Architecture
 
 ```text
-React dashboard
+React dashboard (Vercel)
       ↓
-Express API  (TypeScript)
+Express API (Render)
       ↓
-POST /api/ingest  (audio)  |  POST /api/ingest/text  (typed)
+Whisper transcription (Groq)
       ↓
-Whisper transcription  (skipped for typed text)
+Task extraction model
       ↓
-Task-extraction model  (strict JSON schema)
+PostgreSQL retrieval (Neon)
       ↓
-PostgreSQL keyword/pgvector retrieval
-      ↓
-Contradiction + citation verifier
+Conflict and citation verifier
       ↓
 Confidence router
-   ├── Assign task          (high confidence)
-   ├── Create review item   (conflict / missing assignee / low confidence)
-   └── Mark failed          (unrecoverable error)
+   ├── Assign task
+   ├── Request clarification
+   └── Human review
 ```
 
-## 📁 Project Structure
+---
 
-```text
-Vocal/
-├── client/                   # React app (Vite) — independent project
-│   ├── package.json
-│   └── src/
-│       ├── main.jsx          # UI + demo state
-│       └── styles.css        # design tokens
-└── server/                   # Express API (TypeScript) — independent project
-    ├── package.json
-    ├── .env.example          # config template
-    ├── migrations/           # SQL migrations
-    │   ├── 001_initial.sql
-    │   └── 002_pgvector.sql
-    └── src/
-        ├── index.ts          # entrypoint
-        ├── app.ts            # Express app + middleware
-        ├── config/env.ts     # typed env config (Zod)
-        ├── db/               # pool + migrations + seed
-        ├── lib/              # jwt, errors, logger, async-handler, groq
-        ├── middleware/       # auth, validate, rate-limit, error-handler
-        ├── routes/           # auth, captures, ingest, tasks, review, sources
-        ├── services/         # pipeline, transcription, extraction, verification, retrieval, repos
-        └── types/            # shared domain types
-```
+## 🛠️ Technical Decisions
 
-## 🚀 Getting Started
+1. **Separated Architecture (Vercel + Render):** Instead of a monolith, the frontend is deployed on Vercel for edge-caching and lightning-fast UI delivery, while the Express/Node.js backend runs on Render to handle heavy API routing and database connections.
+2. **PostgreSQL over SQLite:** Initially, the project relied on SQLite. However, due to `GLIBC` binary compilation issues on Render's modern Node 20+ images, I made the architectural decision to completely rip out SQLite and migrate exclusively to **Neon Serverless PostgreSQL**. This made the backend instantly lighter, faster to deploy, and production-ready.
+3. **Dropping Redis:** To keep the infrastructure lean and reduce cost overhead for the hackathon, I removed Redis and `bullmq`. The pipeline currently handles ingest verification synchronously, which is sufficient for the demo scale.
+4. **Dynamic API Routing:** The frontend uses Vite environment variables (`VITE_API_URL`) to seamlessly switch between the local proxy during development and the Render API in production.
+
+---
+
+## 🚧 Challenges Faced
+
+- **Deployment Native Binary Issues:** When deploying the Node.js backend to Render, the `sqlite3` package threw fatal `GLIBC_2.38` missing errors because Render's base OS didn't match the precompiled SQLite binaries for Node 24. **Solution:** Enforced Node 20.x via `package.json` engines, and ultimately ripped out SQLite entirely in favor of a pure Neon Postgres architecture.
+- **CORS & Origin Security:** Getting a separated Vercel frontend to securely talk to a Render backend required careful configuration of Express `cors` middleware, specifically passing the `CLIENT_ORIGIN` environment variable and ensuring no trailing slashes broke the handshake.
+- **State Management & UI Robustness:** Ensuring the UI gracefully handled missing data (e.g., submitting tasks without text) without crashing. **Solution:** Implemented robust CSS skeleton loaders, empty states, and dynamic error toasts.
+
+---
+
+## 🎙️ Pitch Questions
+
+**1. What did you build versus what did the API give you?**
+The APIs provide raw transcription and language generation. We built the code-mixed task structure, Postgres retrieval, conflict detection, citations, confidence routing, human review queue, and a premium UI to tie it all together.
+
+**2. What was the non-obvious hard part?**
+Determining whether a new spoken instruction conflicts with an earlier message or private policy, instead of blindly creating a task.
+
+**3. What breaks at 10,000 users?**
+Bottlenecks would emerge in transcription cost, model latency, and concurrent database connections. Moving back to a robust queuing system (like Redis/BullMQ, which we scaffolded but removed for demo simplicity) and connection pooling via PgBouncer would be required to scale.
+
+---
+
+## 👥 Team & Contributions
+
+*(If you worked solo, leave the first bullet. If you had a team, fill in their roles!)*
+
+- **Arun** (Solo Developer / Lead): 
+  - Designed and developed the premium React/Vite frontend UI (CSS animations, layout, state management).
+  - Built the Node.js/Express backend pipeline.
+  - Integrated Groq AI models for transcription and reasoning.
+  - Managed devops: Migrated database to Neon Postgres, configured environment variables, and successfully deployed to Vercel and Render.
+- **[Team Member 2 Name]**: *(Role - e.g., Handled presentation, testing, or specific feature)*
+
+---
+
+## 🚀 Installation & Local Setup
+
+To run this project locally on your machine, follow these step-by-step instructions.
 
 ### Prerequisites
+Before you begin, ensure you have the following installed:
+- **Node.js** (v20 or higher)
+- **Git**
+- A **PostgreSQL** database (Local or Cloud like Neon/Supabase)
+- A **Groq API Key** (Get one at [console.groq.com](https://console.groq.com/keys))
 
-- **Node.js 20+**
-- **PostgreSQL 15+**
-- A **Groq API key** at [console.groq.com/keys](https://console.groq.com/keys) (optional — the app runs offline without it)
-
-### 1. Install dependencies (each project separately)
-
+### Step 1: Clone the Repository
+Clone the project to your local machine:
 ```bash
-# client
-cd client && npm install
-
-# server
-cd server && npm install
+git clone https://github.com/Arun0041/KaamSetu.git
+cd KaamSetu
 ```
 
-### 2. Configure the server
-
+### Step 2: Install Dependencies
+This project is separated into a `client` (Frontend) and a `server` (Backend). You must install dependencies for both:
 ```bash
-cp server/.env.example server/.env
+# Install frontend dependencies
+cd client
+npm install
+
+# Return to root, then install backend dependencies
+cd ../server
+npm install
 ```
 
-Edit `server/.env`:
-
+### Step 3: Configure Environment Variables
+You need to set up your backend environment variables.
+```bash
+# Make sure you are in the server directory
+cp .env.example .env
+```
+Open `server/.env` in your code editor and update the following critical variables:
 ```env
-DATABASE_URL=postgres://postgres:YOUR_PASSWORD@localhost:5432/kaamsetu
-GROQ_API_KEY=gsk_...           # leave blank to run offline
+DATABASE_URL=postgres://user:password@host:port/dbname
+GROQ_API_KEY=your_groq_api_key_here
+JWT_ACCESS_SECRET=your_super_secret_string
+JWT_REFRESH_SECRET=your_super_secret_string
 ```
 
-### 3. Create the database (if missing)
-
-```sql
-CREATE DATABASE kaamsetu;
-```
-
-> Migrations and demo sources (Finance Policy v3 = 20% cap, Sharma Steels Quotation = 30%) are applied automatically on first boot.
-
-### 4. Run (two terminals)
-
+### Step 4: Run Database Migrations
+Initialize your PostgreSQL database by running the migration script from the `server` directory:
 ```bash
-# terminal 1 — API
-cd server && npm run dev
-
-# terminal 2 — client
-cd client && npm run dev
+npm run migrate
 ```
+*(This will automatically create the required tables: `users`, `captures`, `tasks`, `review_items`, etc.)*
 
-- Client: http://localhost:5173
-- API: http://localhost:4010
+### Step 5: Start the Development Servers
+Open **two separate terminal windows** at the root of your project:
 
-## 📖 API Reference
-
-Base URL: `http://localhost:4010`
-
-### Health
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/health` | Service + DB status |
-
-### Auth
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/auth/register` | Create account (`email`, `password`, `name`) → tokens |
-| POST | `/api/auth/login` | Login → tokens |
-| POST | `/api/auth/refresh` | Rotate refresh token |
-| POST | `/api/auth/logout` | Revoke refresh token |
-| GET | `/api/auth/me` | Current user (auth required) |
-
-### Captures & tasks
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/captures` | List captures (auth required) |
-| GET | `/api/captures/:id` | Capture + tasks + review items (auth required) |
-| GET | `/api/tasks` | List extracted tasks (auth required) |
-| PATCH | `/api/tasks/:id` | Update status/assignee (auth + ownership) |
-
-### Ingest
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/ingest` | Upload audio (multipart field `audio`) |
-| POST | `/api/ingest/text` | Send typed text: `{ "transcript": "..." }` |
-
-### Review & sources
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/review` | Open human-review queue (auth required) |
-| POST | `/api/review/:id/resolve` | Resolve a review item (auth + ownership) |
-| GET | `/api/sources` | List private knowledge sources (auth required) |
-
-### Example: text ingest
-
+**Terminal 1 (Backend API):**
 ```bash
-curl -X POST http://localhost:4010/api/ingest/text \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <TOKEN>" \
-  -d '{"transcript":"Rahul, kal tak vendor quotation compare kar dena. Advance 20% se zyada nahi hona chahiye, but vendor says 30%."}'
+cd server
+npm run dev
+# The API will start on http://localhost:4010
 ```
 
-## 🔄 Pipeline: how a note becomes a task
+**Terminal 2 (Frontend Client):**
+```bash
+cd client
+npm run dev
+# The UI will start on http://localhost:5173
+```
 
-1. **Ingest** — audio (Whisper) or typed text.
-2. **Extract** — strict JSON schema via `openai/gpt-oss-120b`: `title`, `assignee`, `deadline`, `priority`, `entities`, `confidence`, `flags`.
-3. **Retrieve** — hybrid search over private sources.
-4. **Verify** — a second model checks for contradictions and returns citations.
-5. **Route** — `review` (conflict/missing assignee/low confidence), `assignable` (task created), or `failed` (error recorded).
-
-## 📊 Evaluation
-
-`server/migrations/001_initial.sql` creates `eval_cases` and `eval_runs` tables for the 20-case evaluation harness. The frontend exposes an **Evaluation** view to track task-extraction, citation-grounding, conflict-detection, and safe-refusal scores.
-
-## 🛡 Graceful Degradation
-
-| Scenario | Behavior |
-|---|---|
-| `GROQ_API_KEY` missing | Item routed to review with reason *"AI is offline"* |
-| Postgres down | Server starts degraded; `/api/health` reports `database: down` |
-| pgvector missing | Falls back to keyword/LIKE retrieval (migration is optional) |
-| Model error | Capture marked `failed` with the recorded error |
-
-## 🔐 Security Notes
-
-- Passwords hashed with bcrypt (10 rounds).
-- JWT access tokens (15m) + hashed refresh tokens (30d, rotating).
-- Public registration is forced to the `member` role.
-- Ownership checks on task/review mutations.
-- Secrets are read from `server/.env` — **never commit it**.
-
-## 🧭 Known Limitations / Next Steps
-
-- The React UI is still a demo shell; wire it to `/api/captures` and `/api/review` for live data.
-- pgvector + embeddings are not yet wired (retrieval uses keyword search).
-- Audio upload needs a real file and Whisper access on the Groq key.
-- Redis/BullMQ background jobs are scaffolded but not enabled.
-
-## 📜 License
-
-MIT © KaamSetu
+🎉 **You're all set!** Open `http://localhost:5173` in your browser to start using KaamSetu locally.
