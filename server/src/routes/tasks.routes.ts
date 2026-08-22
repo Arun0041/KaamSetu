@@ -62,6 +62,7 @@ tasksRouter.get('/', asyncHandler(async (req: Request, res) => {
       initials: t.capture_initials || 'UN',
       transcript: t.capture_transcript || '',
       reviewReason: review ? review.reason : null,
+      reviewId: review ? review.id : null,
       needsReview: !!review
     };
   });

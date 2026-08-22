@@ -119,17 +119,8 @@ In Indian MSMEs and distributed teams, **over 80% of critical business coordinat
 | **AI / LLM** | Groq API (`whisper-large-v3`, `gpt-oss-120b`) | Ultra-fast code-mixed transcription and structured JSON task graph generation. |
 | **Security & Auth** | JWT Access & Refresh Tokens, bcrypt | Per-user authenticated sessions with role-based access control. |
 
----
 
-## 👥 Team & Contributions
 
-- **Arun** (Solo Developer / Lead): 
-  - Designed and developed the premium React/Vite frontend UI (CSS animations, layout, state management).
-  - Built the Node.js/Express backend pipeline.
-  - Integrated Groq AI models for transcription and reasoning.
-  - Managed devops: Migrated database to Neon Postgres, configured environment variables, and successfully deployed to Vercel and Render.
-
----
 
 ## 🚀 Installation & Local Setup
 
