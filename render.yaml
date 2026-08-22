@@ -1,0 +1,39 @@
+services:
+  # The Node.js API Service
+  - type: web
+    name: kaamsetu-api
+    env: node
+    buildCommand: npm install && cd server && npm install && npm run build
+    startCommand: cd server && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4010
+      - key: CLIENT_ORIGIN
+        value: https://kaam-setu-ecru.vercel.app
+      - key: DATABASE_URL
+        fromDatabase:
+          name: kaamsetu-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: kaamsetu-redis
+          property: connectionString
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: GROQ_API_KEY
+        sync: false # Set this manually in Render Dashboard
+
+  # Managed PostgreSQL Database
+  - type: psql
+    name: kaamsetu-db
+    plan: free
+
+  # Managed Redis Instance
+  - type: redis
+    name: kaamsetu-redis
+    plan: free

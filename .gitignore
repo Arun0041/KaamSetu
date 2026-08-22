@@ -1,0 +1,3 @@
+# Root workspace (only node_modules lives here)
+node_modules/
+package-lock.json
