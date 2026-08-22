@@ -17,7 +17,8 @@ services:
           name: kaamsetu-db
           property: connectionString
       - key: REDIS_URL
-        fromDatabase:
+        fromService:
+          type: redis
           name: kaamsetu-redis
           property: connectionString
       - key: JWT_ACCESS_SECRET
@@ -27,14 +28,14 @@ services:
       - key: GROQ_API_KEY
         sync: false # Set this manually in Render Dashboard
 
+  # Managed Redis Instance
+  - type: redis
+    name: kaamsetu-redis
+    plan: free
+
 databases:
   # Managed PostgreSQL Database
   - name: kaamsetu-db
     databaseName: kaamsetu_db
     user: kaamsetu_user
-    plan: free
-
-  # Managed Redis Instance
-  - name: kaamsetu-redis
-    type: redis
     plan: free
