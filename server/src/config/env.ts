@@ -8,7 +8,7 @@ const schema = z
     DATABASE_URL: z
       .string()
       .min(1)
-      .default('postgres://postgres:postgres@localhost:5432/kaamsetu'),
+      .default('postgres://postgres:postgres@127.0.0.1:5432/kaamsetu'),
     REDIS_URL: z.string().min(1).default('redis://localhost:6379'),
     CLIENT_ORIGIN: z.string().min(1).default('http://localhost:5173'),
     JWT_ACCESS_SECRET: z.string().min(1).default('dev-access-secret-change-me'),

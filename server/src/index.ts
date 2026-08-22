@@ -1,7 +1,7 @@
 import { createApp } from './app.js';
 import { migrate } from './db/migrate.js';
 import { pingDatabase } from './db/pool.js';
-import { seedSourcesIfEmpty } from './db/seed.js';
+import { seedSourcesIfEmpty, seedUsersIfEmpty } from './db/seed.js';
 import { logger } from './lib/logger.js';
 import { env } from './config/env.js';
 
@@ -13,7 +13,10 @@ async function start() {
   if (dbUp) {
     try {
       await migrate();
-      if (env.NODE_ENV === 'development') await seedSourcesIfEmpty();
+      if (env.NODE_ENV === 'development') {
+        await seedSourcesIfEmpty();
+        await seedUsersIfEmpty();
+      }
       logger.info('Database ready');
     } catch (err) {
       logger.error({ err }, 'Database setup failed; starting without database');

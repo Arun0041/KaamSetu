@@ -45,6 +45,31 @@ export function errorHandler(
     return;
   }
 
+  // PostgreSQL/connection failures should not be reported as an opaque 500.
+  // This also covers the common local-dev cases where Postgres is stopped,
+  // the database has not been created yet, or DATABASE_URL has bad credentials.
+  if (isDatabaseError(err)) {
+    logger.error({ err, path: req.path, method: req.method }, 'Database unavailable');
+    res.status(503).json({
+      error: 'Database unavailable. Check PostgreSQL and DATABASE_URL.',
+      code: 'DATABASE_UNAVAILABLE',
+    });
+    return;
+  }
+
   logger.error({ err, path: req.path, method: req.method }, 'Unhandled error');
   res.status(500).json({ error: 'Internal server error', code: 'INTERNAL_ERROR' });
+}
+
+function isDatabaseError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const candidate = err as { code?: string; message?: string };
+  return [
+    'ECONNREFUSED',
+    'ECONNRESET',
+    'ETIMEDOUT',
+    '28P01', // invalid_password
+    '3D000', // invalid_catalog_name
+    '57P03', // cannot_connect_now
+  ].includes(candidate.code ?? '') || /connect|database|password authentication/i.test(candidate.message ?? '');
 }

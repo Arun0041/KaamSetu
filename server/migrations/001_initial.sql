@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   assignee TEXT,
   deadline TEXT,
   priority TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high')),
-  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'assigned', 'done', 'paused')),
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'assigned', 'done', 'paused', 'blocked')),
   confidence REAL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

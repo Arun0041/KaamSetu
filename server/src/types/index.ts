@@ -46,7 +46,7 @@ export interface Capture {
   updated_at: string;
 }
 
-export type TaskStatus = 'open' | 'assigned' | 'done' | 'paused';
+export type TaskStatus = 'open' | 'assigned' | 'done' | 'paused' | 'blocked';
 export type TaskPriority = 'low' | 'medium' | 'high';
 
 export interface Task {
@@ -58,6 +58,9 @@ export interface Task {
   priority: TaskPriority;
   status: TaskStatus;
   confidence: number | null;
+  depends_on: string | null;
+  prior_context: string | null;
+  step_index: number;
   created_at: string;
   updated_at: string;
 }

@@ -34,6 +34,7 @@ ingestRouter.post(
     }
     const result = await runIngestPipeline({
       userId: req.user!.id,
+      userName: req.user!.name,
       buffer: req.file.buffer,
       filename: req.file.originalname,
       mimeType: req.file.mimetype,
@@ -45,6 +46,7 @@ ingestRouter.post(
 ingestRouter.post('/text', ingestLimiter, validate(textSchema), asyncHandler(async (req: Request, res) => {
   const result = await runIngestPipeline({
     userId: req.user!.id,
+    userName: req.user!.name,
     transcript: req.body.transcript,
   });
   res.status(202).json(result);

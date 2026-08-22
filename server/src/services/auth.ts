@@ -40,8 +40,8 @@ export async function registerUser(input: {
   password: string;
   name: string;
 }): Promise<{ user: PublicUser; accessToken: string; refreshToken: string }> {
-  const existing = await pool.query('SELECT id FROM users WHERE email = $1', [input.email]);
-  if (existing.rowCount) throw Conflict('Email is already registered');
+  const existing = await pool.query<{ id: string }>('SELECT id FROM users WHERE email = $1', [input.email]);
+  if (existing.rows.length > 0) throw Conflict('Email is already registered');
 
   const passwordHash = await bcrypt.hash(input.password, 10);
   const role: Role = 'member';

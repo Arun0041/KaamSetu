@@ -31,6 +31,9 @@ interface TaskRow {
   priority: TaskPriority;
   status: TaskStatus;
   confidence: number | null;
+  depends_on: string | null;
+  prior_context: string | null;
+  step_index: number;
   created_at: string;
   updated_at: string;
 }
@@ -104,11 +107,28 @@ export async function createTask(input: {
   deadline: string | null;
   priority: TaskPriority;
   confidence: number | null;
+  depends_on?: string | null;
+  prior_context?: string | null;
+  step_index?: number;
 }): Promise<Task> {
+  // Auto-assign if assignee is known and not blocked
+  let status: string;
+  if (input.depends_on) {
+    status = 'blocked';
+  } else if (input.assignee) {
+    status = 'assigned';
+  } else {
+    status = 'open';
+  }
+
   const { rows } = await pool.query<TaskRow>(
-    `INSERT INTO tasks (capture_id, title, assignee, deadline, priority, confidence)
-     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-    [input.captureId, input.title, input.assignee, input.deadline, input.priority, input.confidence],
+    `INSERT INTO tasks (capture_id, title, assignee, deadline, priority, confidence, depends_on, prior_context, step_index, status)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+    [
+      input.captureId, input.title, input.assignee, input.deadline, input.priority, input.confidence,
+      input.depends_on ?? null, input.prior_context ?? null, input.step_index ?? 0,
+      status
+    ],
   );
   return rows[0];
 }

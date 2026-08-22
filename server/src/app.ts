@@ -32,7 +32,12 @@ export function createApp() {
 
   app.get('/api/health', async (_req, res) => {
     const dbOk = await pingDatabase();
-    res.json({ ok: true, service: 'kaamsetu-api', database: dbOk ? 'up' : 'down', mode: env.NODE_ENV });
+    res.status(dbOk ? 200 : 503).json({
+      ok: dbOk,
+      service: 'kaamsetu-api',
+      database: dbOk ? 'up' : 'down',
+      mode: env.NODE_ENV,
+    });
   });
 
   app.use('/api/auth', authRouter);

@@ -13,29 +13,38 @@ const taskSchema = z.object({
 });
 
 const extractionSchema = z.object({
-  action: taskSchema,
-  clarification: z.string().nullable(),
-  confidence: z.number().min(0).max(1),
-  flags: z.array(z.enum(['missing_assignee', 'ambiguous', 'low_confidence', 'policy_check'])),
+  tasks: z.array(z.object({
+    action: taskSchema,
+    clarification: z.string().nullable(),
+    confidence: z.number().min(0).max(1),
+    flags: z.array(z.enum(['missing_assignee', 'ambiguous', 'low_confidence', 'policy_check'])),
+    depends_on_index: z.number().nullable(),
+    transcript_segment: z.string(),
+  }))
 });
 
 export type ExtractionOutput = z.infer<typeof extractionSchema>;
 
 const SYSTEM_PROMPT = `You are KaamSetu's task-extraction engine for small Indian businesses.
-You receive Hindi-English code-mixed voice-note transcripts and return a single JSON object.
-Extract the concrete action (task), the likely assignee, deadline, priority, and any key entities.
+You receive Hindi-English code-mixed voice-note transcripts.
+Your job is to break down the transcript into a sequential array of actionable tasks.
+For example, if the transcript says "Ask Ravi how many employees joined and then tell Anil to update the portal", you must extract TWO tasks. The second task depends on the first.
 Rules:
-- title: imperative, concise action (e.g. "Compare vendor quotations").
+- title: imperative, concise action.
 - assignee: person's full name if mentioned, else null.
-- deadline: human readable ("Tomorrow", "By Friday") if mentioned, else null.
-- priority: low/medium/high based on urgency and impact.
-- entities: proper nouns (people, vendors, amounts, docs, dates).
-- clarification: null unless the instruction is genuinely ambiguous and needs a human.
-- confidence: 0..1 how sure you are of the extraction.
-- flags: 'missing_assignee' if no assignee; 'ambiguous' if contradictory/ambiguous; 'low_confidence' if confidence < 0.6; 'policy_check' if a policy/limit is cited.
-Never invent facts. If the note is not an actionable instruction, return title describing the note and low confidence.
-Respond with ONLY a JSON object shaped exactly like this example:
-{"action":{"title":"Compare vendor quotations","assignee":"Rahul Sharma","deadline":"Tomorrow","priority":"high","entities":["Rahul","20%","30%"]},"clarification":null,"confidence":0.8,"flags":["policy_check"]}`;
+- deadline: human readable if mentioned, else null.
+- priority: low/medium/high.
+- entities: proper nouns.
+- clarification: null unless ambiguous.
+- confidence: 0..1.
+- flags: 'missing_assignee', 'ambiguous', 'low_confidence', 'policy_check'.
+- depends_on_index: the 0-based index of the prior task this task is waiting for, or null if it can start immediately.
+- transcript_segment: the exact substring of the transcript that generated this task.
+Respond with ONLY a JSON object containing a "tasks" array. Example:
+{"tasks": [
+  {"action":{"title":"Ask how many employees joined","assignee":"Ravi Mehta","deadline":null,"priority":"medium","entities":["Ravi Mehta"]},"clarification":null,"confidence":0.9,"flags":[],"depends_on_index":null,"transcript_segment":"Ask Ravi how many employees joined"},
+  {"action":{"title":"Update the portal with employee count","assignee":"Anil Kapoor","deadline":null,"priority":"medium","entities":["Anil Kapoor","portal"]},"clarification":null,"confidence":0.9,"flags":[],"depends_on_index":0,"transcript_segment":"and then tell Anil to update the portal"}
+]}`;
 
 export async function extractTasks(transcript: string): Promise<ExtractionOutput> {
   if (!transcript.trim()) throw BadRequest('Transcript is empty');
@@ -55,12 +64,17 @@ export async function extractTasks(transcript: string): Promise<ExtractionOutput
   return extractionSchema.parse(parsed);
 }
 
-export function extractToTask(output: ExtractionOutput): ExtractedTask {
-  return {
-    title: output.action.title,
-    assignee: output.action.assignee,
-    deadline: output.action.deadline,
-    priority: output.action.priority,
-    entities: output.action.entities,
-  };
+export function extractToTasks(output: ExtractionOutput): Array<ExtractedTask & { depends_on_index: number | null; transcript_segment: string; clarification: string | null; confidence: number; flags: string[] }> {
+  return output.tasks.map(t => ({
+    title: t.action.title,
+    assignee: t.action.assignee,
+    deadline: t.action.deadline,
+    priority: t.action.priority,
+    entities: t.action.entities,
+    depends_on_index: t.depends_on_index,
+    transcript_segment: t.transcript_segment,
+    clarification: t.clarification,
+    confidence: t.confidence,
+    flags: t.flags
+  }));
 }
