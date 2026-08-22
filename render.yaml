@@ -32,6 +32,7 @@ services:
   - type: redis
     name: kaamsetu-redis
     plan: free
+    ipAllowList: []
 
 databases:
   # Managed PostgreSQL Database
@@ -39,3 +40,4 @@ databases:
     databaseName: kaamsetu_db
     user: kaamsetu_user
     plan: free
+    ipAllowList: []
